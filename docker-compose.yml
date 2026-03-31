@@ -1,12 +1,33 @@
 services:
-  go2rtc:
-    image: alexxit/go2rtc
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: homelab-go2rtc
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
     ports:
       - 1984:1984   # Web UI
       - 8554:8554   # RTSP
       - 8555:8555/tcp # WebRTC TCP
       - 8555:8555/udp # WebRTC UDP
+    restart: unless-stopped
+
+  go2rtc:
+    image: alexxit/go2rtc
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
     env_file: .env
     volumes:
       - ./go2rtc.yaml:/config/go2rtc.yaml
       - ./www:/opt/go2rtc/www
+    restart: unless-stopped
+
+volumes:
+  tailscale-state:
